@@ -10,7 +10,7 @@ from .electra import ElectraModel, Electra
 from .tokenizer.charformer_tokenizer import CharformerTokenizer
 from transformers.models.electra.modeling_electra import ElectraForPreTrainingOutput
 from .charformer.electra import ElectraForPreTraining, ElectraForMaskedLM
-
+from pathlib import Path
 
 __all__ = ["ElectraCharformer"]
 
@@ -118,11 +118,17 @@ class ElectraCharformer:
         self.seed = seed
 
     def read_data(self, max_length=1024):
-        train_data, test_data = train_test_split(construct_paths(self.data_path, "wiki*"),
-                                                 self.seed,
-                                                 p=0.8)
-        train = WebcorpusInMemoryCharformer(train_data, max_length=max_length)
-        test = WebcorpusInMemoryCharformer(test_data)
+        # data_path is expected to be /mnt/data/
+        # Training data is expected to be located under data_path/train
+        # Validation data is expected to be located under data_path/validation
+        train_path = Path(self.data_path) / "train"
+        validation_path = Path(self.data_path) / "validation"
+
+        train_files = [str(f) for f in train_path.glob("*.txt")]
+        validation_files = [str(f) for f in validation_path.glob("*.txt")]
+
+        train = WebcorpusInMemoryCharformer(train_files, max_length=max_length)
+        test = WebcorpusInMemoryCharformer(validation_files, max_length=max_length)
 
         self._dataset = DatasetDict({
             'train': Dataset.from_dict(train.__dict__()),
